@@ -1,5 +1,106 @@
 ---
-title: "run_standartox"
-output: html_document
+title:  "Learning StandaRtox - A basic introduction for beginners"
+author: "Hannes Reinwald, Andreas Scharmüller, Heike Fremdt"
+date:   "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+runtime: shiny
 ---
+
+----
+
+# Setting up your R environment
+
+### Installing packages
+First we need to install the *standartox* package for R. This can be easily done by running the following code in your R console:
+```{r, eval=FALSE}
+if (!requireNamespace("standartox", quietly = TRUE)) { # <- this checks if the package is already installed
+  install.packages("standartox")
+}
+```
+
+The *standartox* package depends on the data.table package, which is a powerful R-package for efficient data manipulation. Hence, it is also required for the *standartox* package to work properly. If you don't have it installed, you can do so with the following command:
+```{r, eval=FALSE}
+if (!requireNamespace("data.table", quietly = TRUE)) { # <- this checks if the package is already installed
+  install.packages("data.table")
+}
+```
+
+### Loading packages
+If we have the required R-packages installed we must load them into our current R session. It is good practice to load all required packages at the beginning of your R script. This way you can easily see which packages are needed for your analysis. The following code loads the *standartox* and *data.table* packages:
+```{r}
+library(standartox)
+library(data.table)
+```
+
+----
+
+# The StandaRtox Architecture
+Show the basic functionalists of the following standartox functions:
+
+  - `stx_download()`
+  - `stx_catalog()`
+  - `stx_chem()`
+  - `stx_taxa()`
+  - `stx_data()`
+  - `stx_query()`
+
+### stx_download()
+The backbone of any database call or query is the database itself. The *standartox* package itself does not come with a built-in database.
+Instead, it provides a function to download the StandaRtox relational database files from [Zenodo.org](https://doi.org/10.5281/zenodo.3785030) 
+
+This database is stored in a specific directory on your computer, which is defined by the `stx_dir` parameter. The default directory is set to a temporary directory (`file.path(tempdir(),"standartox")`), which is automatically deleted when you closing your R-Session. 
+```{r, eval=FALSE}
+# By default standartox will download the StandaRtox database into stx_dir = file.path(tempdir(),"standartox") 
+stxDb = standartox:::stx_download(silent = FALSE) # <- this will store your Db files in a tmp directory 
+list.files(file.path(tempdir(),"standartox"))
+```
+
+If you wish to keep the standartox data base files permanently on your device you can specify any directory on your system. 
+```{r, eval=FALSE}
+# If you wish to keep the downloaded data base permanently, you can specify your storage directory.
+local_stx_dir = "~/standartox"
+stxDb = standartox:::stx_download(silent = FALSE, stx_dir = local_stx_dir)
+list.files(local_stx_dir) 
+```
+
+Before running any query, standartox will first check if it can find the required data base files on your local system (specified in `stx_dir`). If it finds the files it will not launch the download from Zenodo. Hence, the download (which might take a while) is only needed once. After that it will run the querries on your local files system which is much faster. 
+
+**The good news is that we don't have to use `stx_download()` itself if we wish to query standartox data base!** This function is embedded in in the subsequent functions. Hence, to keep your life simple you can directly go to a query via `stx_query()` or inspect the data catalog via `stx_catalog`.
+
+### stx_catalog()
+```{r, eval=FALSE}
+catalog = stx_catalog()
+```
+
+### stx_chem()
+```{r, eval=FALSE}
+chem.dt = stx_chem()
+```
+
+### stx_taxa()
+```{r, eval=FALSE}
+taxa.dt = stx_taxa()
+```
+
+### stx_data()
+```{r, eval=FALSE}
+tox.dt = stx_data()
+```
+
+### stx_query()
+```{r, eval=FALSE}
+qres = stx_query()
+```
+
+----
+  
+# Running **stx_query()**
+
+
+
+
 
