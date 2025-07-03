@@ -1,5 +1,5 @@
 # GLB2025 - StandaRtox Course Repository
-Dieses Repository bietet die R-Markdown-Skripte und Backup-Dateien für den Kurs "How to mine public ecotox data - an introduction to StandaRtox". Hier findest du alle notwendigen Materialien, um die Inhalte des Kurses nachzuvollziehen und selbstständig mit StandaRtox zu arbeiten.
+Dieses Repository bietet die R-Markdown-Skripte und Backup-Dateien für den Kurs *"How to mine public ecotox data - an introduction to StandaRtox"*. Hier findest du alle notwendigen Materialien, um die Inhalte des Kurses nachzuvollziehen und selbstständig mit StandaRtox zu arbeiten.
 
 Hier gehts zur aktuellsten github Version des [standartox R-package](https://github.com/andschar/standartox).
 
