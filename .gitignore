@@ -5,3 +5,5 @@
 *.Rproj
 *.html
 src/standartox.R
+output/*
+standartox_course_output/*
