@@ -278,7 +278,7 @@ q1.1$concentration_unit %>% table %>% sort(., decreasing = T)
 We have multiple options on how to export our query results as simple flat data tables. The easiest is to use base R for that. 
 ```{r, eval=FALSE}
 # To keep things clean and tight - let's create an output directory
-out_dir = file.path("~/standartox_course_output") # specify path to out_dir
+out_dir = file.path("./standartox_course_output") # specify path to out_dir
 dir.create(out_dir, showWarnings = FALSE) # create the output directory 
 
 # Export the query as csv. Use write.csv2() for that
