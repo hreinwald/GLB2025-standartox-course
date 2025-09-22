@@ -3,7 +3,7 @@ Dieses Repository bietet die R-Markdown-Skripte und Backup-Dateien für den Kurs
 
 Hier gehts zur aktuellsten github Version des [standartox R-package](https://github.com/andschar/standartox).
 
-Hier gehts zur [Standartox-Publikation](https://doi.org/10.3390/data5020046)
+Hier gehts zur [Standartox-Publikation (Scharmüller et al. 2020)](https://doi.org/10.3390/data5020046)
 
 
 ### Inhalte:
