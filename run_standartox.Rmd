@@ -47,6 +47,9 @@ library(standartox)
 library(data.table)
 library(dplyr)   # A helpful package for data filtering and aggregation
 library(ggplot2) # A powerful data plotting package
+
+# with this line we will load custom plotting functions built for this course
+source("src/custom_plot_FUN.R")
 ```
 
 ----
@@ -142,7 +145,7 @@ Use `str(catalog)` or `View(catalog)` to inspect its content. It is a named list
 
 ```{r, eval=FALSE}
 catalog_names <- names(catalog)     # Get the names of all objects in catalog
-View(as.data.frame(catalog_names)) # Display as a data frame to facilitate the search
+View(as.data.frame(catalog_names))  # Display as a data frame to facilitate the search
 ```
 
 For example if you are interested to know which kind of `endpoint`, `concentration_unit` or `measurement` types can be found in the data base you can view them like this.
@@ -206,7 +209,7 @@ The function operates in a sequential process:
 4.  Finally, it applies the remaining experimental filters (`effect`, `duration`, `concentration_unit`, etc.).
 
 
-By default, `stx_query()` filters for `endpoint_group = c("XX50", "NOEX", "LOEX")` and `duration_unit = "h"`. It also removes entries that are marked as "Not Reported" (NR) in `endpoint` and `duration_unit`.
+By default, `stx_query()` filters for `endpoint_group = c("XX50", "NOEX", "LOEX")`, `qualifier = "="` and `duration_unit = "h"`. It also removes entries that are marked as "Not Reported" (NR) in `endpoint` and `duration_unit`.
 ```{r, eval=FALSE}
 # Use verbose = TRUE to view the steps of the function.
 qres <- stx_query(verbose = TRUE) 
@@ -272,6 +275,10 @@ Let's inspect the query results. How many different `endpoint` and `concentratio
 # We then sort the results to see the most common ones first.
 q1$endpoint %>% table() %>% sort(decreasing = TRUE) %>% View()
 q1$concentration_unit %>% table() %>% sort(decreasing = TRUE) %>% View()
+
+# We can use our custom plotting function to display the values in a plot
+plot_col_freq(q1, "endpoint")
+plot_col_freq(q1, "concentration_unit")
 ```
 
 After looking at the results, you might decide to filter more specifically. Let's say your endpoint of interest is `XX50` (e.g., LC50, EC50) and your concentration units of interest are "g/l" and "ppb".
@@ -288,6 +295,10 @@ q1.1 <- stx_query(
 #Let's check if that worked
 q1.1$endpoint %>% table() %>% sort(decreasing = TRUE)
 q1.1$concentration_unit %>% table() %>% sort(decreasing = TRUE)
+
+# We can use our custom plotting function again to display the values in a plot
+plot_col_freq(q1.1, "endpoint")
+plot_col_freq(q1.1, "concentration_unit")
 ```
 
 ### Exporting the query results
@@ -325,6 +336,53 @@ writexl::write_xlsx(q1.1, path = file.path(out_dir, "q1.1_res.xlsx"))
 
 ### Query for specific taxa
 
+Very often a researcher might be interested in finding information on a specific taxonomic group. *standaRtox* allows the user to query and filter for various taxonomic attributes. 
+
+We can find all these attributes in the taxa data table which a can import like this:
+```{r, eval=FALSE}
+taxa.dt = stx_taxa()
+View(taxa.dt)     # inspect the data table
+
+colnames(taxa.dt) # this returns all the column names
+
+# List all taxonomic families
+taxa.dt$tax_family %>% table %>% sort(decreasing = T) %>% View
+
+# List all taxonomic orders
+taxa.dt$tax_order %>% table %>% sort(decreasing = T) %>% View
+
+# List all taxonomic class
+taxa.dt$tax_class %>% table %>% sort(decreasing = T) %>% View
+```
+
+In case you are looking for a something specific you can simply filter the table like this:
+```{r, eval=FALSE}
+# Filter the taxa table for the Family Chironomidae (Lake flys)
+chiros = taxa.dt %>% filter(tax_family %in% "Chironomidae")
+```
+
+Let's assume you wish to retrieve all LC50 and EC50 endpoints for all organisms belonging to the family of *Daphniidae*. We can do this like:
+```{r, eval=TRUE}
+q2 = stx_query(
+  tax_family = "Daphniidae", 
+  endpoint = c("LC50","EC50"),
+  concentration_unit = "g/l" # <- to make results more comparable
+)
+
+# Inspect the measurement types represented in the data
+m_types = q2$measurement %>% table %>% sort(decreasing = T)
+head(m_types, 15) # show the top 15 results
+
+# As you can see 'mortality' and 'immobile' are by far the most common ones. 
+# Let's filter further for those using dplyr: 
+q2.1 = q2 %>% filter(measurement %in% c("mortality","immobile","mobility"))
+```
+
+We can plot the results of our query using `ggplot2`. 
+```{r, eval=TRUE}
+
+
+```
 
 ----
 
