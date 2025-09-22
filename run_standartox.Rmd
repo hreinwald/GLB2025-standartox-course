@@ -46,9 +46,8 @@ library(dplyr) # <- this is another very helpful package which facilitates subse
 
 The image below gives you an overview on how *standaRtox* is setup and operates.
 ![StandaRtox in a nutshell](img/standartox_overview_whitebg.png)
-Basically, the R package downloads and loads related data table files (~ relational data base) from [this Zenodo Page](https://doi.org/10.5281/zenodo.3785030).
 
-These files were pre-processed and harmonized through a SQL Pipeline designed by Andreas Scharmüller. 
+Basically, the R package downloads and loads related data table files (~ relational data base) from [this Zenodo Page](https://doi.org/10.5281/zenodo.3785030). These files were pre-processed and harmonized through a SQL Pipeline designed by Andreas Scharmüller. 
 
 For more details, see the initial *standaRtox* publication by [Scharmüller et al. (2020)](https://www.mdpi.com/2306-5729/5/2/46).
 
@@ -71,7 +70,7 @@ These are the main *standaRtox* functions:
 ----
 
 ### stx_download()
-The backbone of any database call or query is the database itself. The *standartox* package itself does not come with a built-in database.
+The backbone of any database query is the database itself. The *standartox* package itself does not come with a built-in database.
 Instead, it provides a function to download the StandaRtox relational data tables from [Zenodo.org](https://doi.org/10.5281/zenodo.3785030) 
 
 This relational data tables are stored in a specific directory on your computer, which is defined by the `stx_dir` parameter. The default directory is set to a temporary directory (`file.path(tempdir(),"standartox")`), which is by default automatically deleted after you finished your R-Session. 
