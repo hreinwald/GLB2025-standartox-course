@@ -1,0 +1,59 @@
+---
+title: "Research qustions - Hacking StandaRtox"
+output: github_document
+---
+
+## Setup
+
+```{r setup}
+# remotes::install_github('andschar/standartox')
+require(standartox)
+require(dplyr)
+require(ggplot2)
+require(udunits2)
+```
+
+## Data
+
+```{r pressure, echo=FALSE}
+# Load data
+stx = standartox::stx_data()
+che = standartox::stx_chem()
+tax = standartox::stx_taxa()
+# Merge data
+dat = merge(stx, tax, by = 'tl_id')
+dat = merge(dat, che, by = 'casnr')
+```
+
+## Research qustions
+
+### Most common taxa (genus level) & chemical combination
+
+What are the most common taxa in the dataset?
+
+```{r}
+
+```
+
+### Most tested pesticide class
+
+What is the most tested pesticide class in the dataset?
+
+Hint: Extract the pesticide class from the chem_class column via regex.
+
+### Daphnia life stage vulnerability
+
+Which Daphnia life stage is the most vulnerable against insecticides?
+
+- More filters
+    - Endpoints: EC50, LC50
+    - Effect: mortality, intoxication
+    - Life stages: Neonates, Larava, Juvenile and Adult.
+
+Mind the units!
+
+```{r}
+
+```
+
+### What are the chemicals with the most tested taxa?
