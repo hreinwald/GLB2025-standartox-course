@@ -9,45 +9,54 @@ output:
     toc_float: true
 runtime: shiny
 ---
-
+  
 ----
-
+  
 ## Setting up your R environment
-
+  
 ### Installing packages
-First we need to install the *standaRtox* package for R. This can be easily done by running the following code in your R console:
+First, we need to install the *standaRtox* package for R. Usually R-packages are easily installed from the CRAN server via `install.packages()`. However, the NEW and working *standaRtox* version is currently only available on [Github](https://github.com/andschar/standartox). 
+
+This can be easily done by running the `install_github` command from the `remotes` package.
 ```{r, eval=FALSE}
-# checks if the package is already installed
-if (!requireNamespace("standartox", quietly = TRUE)) { 
-  install.packages("standartox")
-}
+# CRAN Server installation code example
+# install.packages("standartox") # CRAN version <-- currently not available!
+
+# Currently only available on GitHub
+install.packages("remotes") # <- we need this package for github installation
+remotes::install_github('andschar/standartox') # github version
 ```
 
-The *standaRtox* package depends on the data.table package, which is a powerful R-package for efficient data manipulation. It is required to make the *standaRtox* package work properly. If you don't have it installed, you can do so with the following command:
+The *standaRtox* package depends on the `data.table` package, which is a powerful R-package for efficient data manipulation. It is required to make the *standaRtox* package work properly. If you don't have it installed, the following code will handle it.
 ```{r, eval=FALSE}
-# checks if the package is already installed
-if (!requireNamespace("data.table", quietly = TRUE)) {
-  install.packages("data.table")
-}
+# We can write this in a single line of code as well like this:
+install.packages("data.table")
+```
+
+Later on in this course we will depend on a few more R packages. Let's install them as well.
+```{r, eval=FALSE}
+install.packages("dplyr")
+install.packages("ggplot2")
 ```
 
 ### Loading packages
-If we have the required R-packages installed we must load them into our current R session. It is good practice to load all required packages at the beginning of your R script. This way you can easily see which packages are needed for your analysis. The following code loads the *standaRtox* and *data.table* packages:
+Once we have the required R packages installed, we must load them into our current R session. It is good practice to load all required packages at the beginning of your R script. This way, you can easily see which packages the script depends on.
 ```{r, eval=FALSE}
-#library(standartox)
-source("src/standartox.R") # For now let's load the local source script 
+# Load the necessary packages for this analysis
+library(standartox)
 library(data.table)
-library(dplyr) # <- this is another very helpful package which facilitates subsequent filtering and data aggregation
+library(dplyr)   # A helpful package for data filtering and aggregation
+library(ggplot2) # A powerful data plotting package
 ```
 
 ----
 
 ## The StandaRtox Architecture
 
-The image below gives you an overview on how *standaRtox* is setup and operates.
+The image below gives you an overview of how *standaRtox* is set up and operates.
 ![StandaRtox in a nutshell](img/standartox_overview_whitebg.png)
 
-Basically, the R package downloads and loads related data table files (~ relational data base) from [this Zenodo Page](https://doi.org/10.5281/zenodo.3785030). These files were pre-processed and harmonized through a SQL Pipeline designed by Andreas Scharmüller. 
+Basically, the R package downloads and loads related data table files (~ relational data base) from [this Zenodo Page](https://doi.org/10.5281/zenodo.3785030). These files originate from the [EPA ECOTOX Knowledgebase](https://cfpub.epa.gov/ecotox/explore.cfm) and were consolidated and harmonized through a custom pipeline designed by Andreas Scharmüller. They are the backbone of *standaRtox*.
 
 For more details, see the initial *standaRtox* publication by [Scharmüller et al. (2020)](https://www.mdpi.com/2306-5729/5/2/46).
 
@@ -56,56 +65,56 @@ For more details, see the initial *standaRtox* publication by [Scharmüller et a
 
 ## The StandaRtox Functions
 
-Before we dive into the fun of running queries with *standaRtox* let's first go over the main functions of this package. It will help us to understand how the package itself works and how we can make the best out of it. 
+Before we dive into the fun of running queries with *standaRtox*, let's first go over the main functions of this package. It will help us to understand how the package itself works and how we can make the most of it.
 
 These are the main *standaRtox* functions:
-
-  - `stx_download()`: the backbone of everything
-  - `stx_catalog()`: get the standaRtox data catalog.
-  - `stx_taxa()`: get a list of all taxonomic groups found in the data base
-  - `stx_chem()`: get a list of all chemicals available in the data base
-  - `stx_data()`: get a list of all reported endpoints/results in the data base
-  - `stx_query()`: **the main function to query the data base**
-
+  
+- `stx_download()`: The backbone of everything; downloads the database.
+- `stx_catalog()`: Gets the standaRtox data catalog.
+- `stx_taxa()`: Gets a list of all taxonomic groups in the database.
+- `stx_chem()`: Gets a list of all chemicals available in the database.
+- `stx_data()`: Gets a list of all reported endpoints/results in the database.
+- `stx_query()`: **The main function to query the database.**
+  
 ----
-
+  
 ### stx_download()
-The backbone of any database query is the database itself. The *standartox* package itself does not come with a built-in database.
-Instead, it provides a function to download the StandaRtox relational data tables from [Zenodo.org](https://doi.org/10.5281/zenodo.3785030) 
+The backbone of any database query is the database itself. The *standartox* package does not come with a built-in database.
+Instead, it provides a function to download the StandaRtox relational data tables from [Zenodo.org](https://doi.org/10.5281/zenodo.3785030).
 
-This relational data tables are stored in a specific directory on your computer, which is defined by the `stx_dir` parameter. The default directory is set to a temporary directory (`file.path(tempdir(),"standartox")`), which is by default automatically deleted after you finished your R-Session. 
+These relational data tables are stored in a specific directory on your computer, which is defined by the `stx_dir` parameter. The default directory is a temporary directory on your system.
 
-The output of `stx_download` is a list of objects (mostly data tables) which correspond to the downloaded and imported files. 
+The output of `stx_download()` is a list of objects (mostly data tables) which correspond to the downloaded and imported files. 
 
-We will now use `stx_download` and name its output 'stxDb'. Under this name the list object can be found in our R Environment.
-```{r, eval=F}
-# By default standartox will download the StandaRtox database into:
-file.path(tempdir(),"standartox")
+We will now use `stx_download()` and name its output *'stxDb'*. Under this name, the list object can be found in our R Environment.
+```{r, eval=FALSE}
+# By default, standartox will download the database into a temporary directory:
+file.path(tempdir(), "standartox")
 
-# The following code line will store your Db files in a tmp directory
-stxDb = standartox:::stx_download(silent = FALSE)
-# By setting the parameter 'silent = FALSE' the function becomes verbose and prints the progress of its operation/download into the console. 
+# The following code will store your Db files in that temporary directory
+# Setting 'silent = FALSE' makes the function verbose, printing its progress.
+stxDb <- stx_download(silent = FALSE)
 ```
 
-If the download was successful we should now find the files in our local file system. Let's check that real quick using the `list.files` call which will list files under a specified file path. 
-```{r, eval=F}
-list.files(file.path(tempdir(),"standartox"))
+If the download was successful, we should now find the files in our local file system. Let's check that with the `list.files` function. 
+```{r, eval=FALSE}
+list.files(file.path(tempdir(), "standartox"))
 ```
 
-You can inspect the structure of the `stxDb` list object further within your R Studio IDE (**I**ntegrated **D**evelopment **E**nvironment) simply via the `View()` command:
-```{r eval=FALSE}
+You can inspect the structure of the `stxDb` list object further within your RStudio IDE simply via the `View()` command:
+```{r, eval=FALSE}
 View(stxDb)
 ```
 
-If you wish to keep the standartox data base files permanently on your device you can specify any directory on your system. This might be of interest if you are forced to work offline. (E.g. travelling with Deutsche Bahn XD ... )
+If you wish to keep the standartox database files permanently on your device, you can specify any directory on your system. This might be useful if you need to work offline (e.g., traveling with Deutsche Bahn xD).
 ```{r, eval=FALSE}
-# If you wish to keep the downloaded data base permanently, you can specify your storage directory.
-local_stx_dir = "~/standartox_db"
-stxDb = stx_download(silent = FALSE, stx_dir = local_stx_dir)
+# To keep the downloaded database permanently, specify a storage directory.
+local_stx_dir <- "~/standartox_db"
+stxDb <- stx_download(silent = FALSE, stx_dir = local_stx_dir)
 ```
 
-We can quickly check for our files under our specified file path in the variable `local_stx_dir` using `list.files` again. This time we use the parameter `full.names = TRUE` which returns the full file paths under which the files are stored on our local system. 
-```{r, eval = F}
+We can quickly check for our files under our specified file path in the variable `local_stx_dir` using `list.files` again. This time we use `full.names = TRUE` which returns the full file path.
+```{r, eval = FALSE}
 list.files(local_stx_dir, full.names = TRUE)
 ```
 
@@ -113,192 +122,204 @@ list.files(local_stx_dir, full.names = TRUE)
 
 ### The main operating logic
 
-Before running any query, *standaRtox* will first check if it can find the required data table files on your local system (specified in `stx_dir`). If it finds the files it will not download again from Zenodo. Hence, the **download** (which might take a while) is **only needed once!** 
+Before running any query, *standaRtox* will first check if it can find the required data table files on your local system (in the directory specified by `stx_dir`). If it finds the files, it will not download them again from Zenodo.
 
-From now on *standaRtox* will run all your queries directly on your local files system. This makes things much quicker without the need to re-download information over and over again. 
+From now on, *standaRtox* will run all your queries directly on your local file system. This makes things much quicker without the need to re-download information. 
 
-**The good news is that we don't have to use `stx_download()` itself if we wish to query standaRtox data base!** This function is embedded in in the subsequent functions. Hence, to keep your life simple you can directly go to a query via `stx_query()` or inspect the data catalog via `stx_catalog`.
+**The good news is that we don't have to use `stx_download()` ourselves if we wish to query the standaRtox database!** This function is embedded in the subsequent functions. So, to keep your life simple, you can just use `stx_query()` and the other functions directly.
 
 ----
-
+  
 ### stx_catalog()
-Retrieves a catalog of all possible values for variables that can be used for filtering in the  `stx_query` call. This is useful for discovering valid inputs for parameters like *endpoint_group*, *effect*, or *tax_group*.
+This function retrieves a catalog of all possible values for variables that can be used for filtering in the `stx_query` call. This is useful for discovering valid inputs for parameters like `endpoint_group`, `effect`, etc.
 
-To get a data catalog simply run:
-```{r, eval=F}
-catalog = stx_catalog()
+To get a data catalog, simply run:
+```{r, eval=FALSE}
+catalog <- stx_catalog()
 ```
 
-Use `str(catalog)` or `View(catalog)` to inspect its content. It is a named list with a bunch of data tables. Each name of a data table object in the list is named after a column of values which is reported in the data base and is part of the `stx_query()` output. 
-
-```{r, eval=F}
-catalog_names = names(catalog)     # get the names of all objects in catalog
-View(as.data.frame(catalog_names)) # display as data frame to facilitate the search
-```
-
-----
-
-### stx_taxa()
-If you want to know which taxonomic groups are represented in the data base or if you are looking for a specific organism you can either search through your `catalog` specifically through the different taxonomic tables (e.g. *tax_genus*, *tax_family*, etc.). it might be much easier to directly look through the taxaonomy table which can be retrieved simply via `stx_taxa()`.
+Use `str(catalog)` or `View(catalog)` to inspect its content. It is a named list of data tables. Each data table in the list is named after a column of values which is returned by `stx_query()`.
 
 ```{r, eval=FALSE}
-taxa.dt = stx_taxa()
+catalog_names <- names(catalog)     # Get the names of all objects in catalog
+View(as.data.frame(catalog_names)) # Display as a data frame to facilitate the search
+```
+
+For example if you are interested to know which kind of `endpoint`, `concentration_unit` or `measurement` types can be found in the data base you can view them like this.
+```{r, eval=FALSE}
+catalog$endpoint
+catalog$concentration_unit
+catalog$measurement
+```
+Using `View()` allows you to use the search bar in your R Studio IDE. (e.g. `View(catalog$endpoint)`)
+
+----
+  
+### stx_taxa()
+If you want to know which taxonomic groups are represented in the database or if you are looking for a specific organism, you can use `stx_taxa()`.
+
+```{r, eval=FALSE}
+taxa.dt <- stx_taxa()
 View(taxa.dt)
 ```
 
-Within your R Studio IDE you can simply use the search bar in the top-right corner when opening the table via `View(taxa.dt)`.
+Within your RStudio IDE, you can use the search bar in the top-right corner of the data viewer to find what you're looking for.
 
 ----
 
 ### stx_chem()
-If you are interested to know which chemicals are listed in the `phch.fst` file you can use `stx_chem()` to directly access this information. 
+If you are interested in which chemicals are listed, you can use `stx_chem()` to directly access this information. 
 ```{r, eval=FALSE}
-chem.dt = stx_chem()
+chem.dt <- stx_chem()
 View(chem.dt)
 ```
-Note that there is a *cas*, *common_name* and *chem_name* column, which can be used to find the chemicals you might be looking for. 
-
-Again, you can simply use the search bar in the top-right corner of your R Studio IDE when displaying the table via `View(chem.dt)`.
+Note that there are `cas`, `common_name`, and `chem_name` columns, which can be used to find the chemicals you might be looking for. 
 
 ----
 
 ### stx_data()
-If you are an already advanced in data mining and data engineering via R you might be interested in checking out the `stx_data()` call. This will load all of the ~1.2 million entries from the `test_fin.fst` file. This is by far the largest file and might consume some memory of your system.
+If you are already advanced in data mining with R, you might be interested in the `stx_data()` function. This will load all ~1.2 million entries from the database.
 
 ```{r, eval=FALSE}
-tox.dt = stx_data()
+tox.dt <- stx_data()
 ```
 
-**We do not recommend using `stx_data()` when searching for specific content from the data base.** Instead we highly recomend to directly use `stx_query()` which was specifically developed to help you with filtering and customizing your search for your own needs and interest. 
+**We do not recommend using `stx_data()` when searching for specific content.** Instead, we highly recommend using `stx_query()`, which was specifically developed to help you filter the database efficiently.
 
 ---
 
 ### **stx_query()** 
 One function to rule them all - `stx_query()`! This is the main function of the *standaRtox* package.
 
-You can inspect the full documentation on the function and all of it parameters via:
+You can inspect the full documentation of the function and all of its parameters by running:
 ```{r, eval=FALSE}
-?stx_query()
+?stx_query
 ```
 
 The function acts as a powerful front-end for subsetting the database based on chemical, experimental, and taxonomic criteria designed by the user. 
 
 The function operates in a sequential process:
 
-1.  It first downloads the necessary data tables (only once during a session).
+1.  It first downloads the necessary data tables (if not already present).
 2.  It performs an initial, fast filtering based on `endpoint_group`, `endpoint_qualifier`, and `duration_unit`.
 3.  It then appends chemical and taxonomic information, filtering by `cas_number` and the `tax_*` parameters.
 4.  Finally, it applies the remaining experimental filters (`effect`, `duration`, `concentration_unit`, etc.).
 
 
-By default, if you do not specify any other filter parameters, `stx_query()` will filter for results which `endpoint_group = c("XX50", "NOEX", "LOEX")` and `duration_unit = "h"`. Further, the `rm_NR = TRUE` will remove all entries which have a NR (not reported) value for `endpoint` and `duration_unit`.
+By default, `stx_query()` filters for `endpoint_group = c("XX50", "NOEX", "LOEX")` and `duration_unit = "h"`. It also removes entries that are marked as "Not Reported" (NR) in `endpoint` and `duration_unit`.
 ```{r, eval=FALSE}
-qres = stx_query(verbose = TRUE) # use verbose = TRUE to view the steps of the function.
+# Use verbose = TRUE to view the steps of the function.
+qres <- stx_query(verbose = TRUE) 
 ```
 
-You can now inspect the results for your basic `stx_query()` via `View(qres)`. If you wish to append a reference list you can do so by setting `include_reference = TRUE` in the function call. 
+You can now inspect the results via `View(qres)`. If you wish to append a reference list, you can set `include_reference = TRUE`. 
 
 ```{r, eval=FALSE}
-qres = stx_query(verbose = TRUE, include_reference = TRUE) # append reference list
+# Append reference list to the results
+qres <- stx_query(verbose = TRUE, include_reference = TRUE)
 ```
 
 ----
   
-## Running custom **stx_query()**
+## Running a custom stx_query()
 
 ### Query for specific chemicals
-Let's say you might be interested in finding ecotoxicological endpoints for the following chemicals: 
-
+Let's say you are interested in finding ecotoxicological endpoints for the following chemicals: 
+  
 - glyphosate
 - carbaryl
 - imidacloprid
 - fipronil
 
-Up to this point, `stx_query()` only supports filtering for the *CAS* number. Hence we first need to get them into a vector before we can submit that to the `cas_number` parameter of the query. 
+`stx_query()` supports filtering by CAS number. So, first, we need to find the CAS numbers for these chemicals.
 
-We can extract the *CAS* and query for these chemicals like this: 
+We can get them using `stx_chem()`:
 ```{r, eval=FALSE}
 # Let's get our chemical list first 
-chem.dt = stx_chem()
+chem.dt <- stx_chem()
 
-# Now we search for our specified chemicals - for this we will use dplyr's filter() 
-chem_names = c("glyphosate","carbaryl","imidacloprid","fipronil")
-chem_names.regex = paste(chem_names, collapse = "|") # some regex magic here ...
+# Now we search for our specified chemicals using dplyr's filter() 
+chem_names <- c("glyphosate", "carbaryl", "imidacloprid", "fipronil")
 
-# Let's apply the filter and inspect the results
-chem.dt_filtered = chem.dt %>% filter(common_name %like% chem_names.regex)
-# Let's inspect the results
+# Let's try searching for these names.
+# The %like% operator finds partial matches.
+chem.dt_filtered <- chem.dt %>% filter(common_name %like% paste(chem_names, collapse = "|"))
 nrow(chem.dt_filtered) # returns the number of rows in a data frame
 View(chem.dt_filtered)
-chem.dt_filtered$cas # return the cas numbers in the data table
 
-# As you can see when inspecting the 'chem.dt_filtered' table we have a bunch of matches
-# and multiple cas numbers. To make our life easier, we will only select the cas numbers
-# which match exactly our 'chem_names'
-chem.dt_filtered2 = chem.dt %>% filter(common_name %in% chem_names)
+# As you can see, this returns many partial matches. 
+# To get only exact matches, we should use the %in% operator.
+chem.dt_filtered2 <- chem.dt %>% filter(common_name %in% chem_names)
 View(chem.dt_filtered2)
 
-# We can access the column with our cas numbers simply like: 
+# We can access the column with our CAS numbers like this: 
 chem.dt_filtered2$cas
 
-# Let store them in a new variable called 'my_cas'
-my_cas = chem.dt_filtered2$cas
+# Let's store them in a new variable called 'my_cas'
+my_cas <- chem.dt_filtered2$cas
 ```
 
-Now that we have extracted the CAS numbers of our interest we can simply run the query via: 
+Now that we have the CAS numbers, we can run the query: 
 ```{r, eval=FALSE}
 ## RUN THE QUERY WITH THE CAS NUMBERS ##
-q1 = stx_query(cas_number = my_cas, endpoint_group = NULL)
+# We set endpoint_group = NULL to get all endpoint groups, not just the default ones.
+q1 <- stx_query(cas_number = my_cas, endpoint_group = NULL)
 ```
 
-Let's inspect the query results. How many differing `endpoint` and `concentration_unit` values can be found in our results?
+Let's inspect the query results. How many different `endpoint` and `concentration_unit` values are in our results?
 ```{r, eval=FALSE}
-q1$endpoint %>% table %>% sort(., decreasing = T) %>% View
-q1$concentration_unit %>% table %>% sort(., decreasing = T) %>% View
+# The table() function counts occurrences of each value.
+# We then sort the results to see the most common ones first.
+q1$endpoint %>% table() %>% sort(decreasing = TRUE) %>% View()
+q1$concentration_unit %>% table() %>% sort(decreasing = TRUE) %>% View()
 ```
 
-After looking at the results you might decide to filter more specifically. Your endpoint_group of interest is everything associated with `XX50` (e.g. LC50, EC50, ...) and your concentration_unit of interest is only `g/l` and `ppb`.
+After looking at the results, you might decide to filter more specifically. Let's say your endpoint of interest is `XX50` (e.g., LC50, EC50) and your concentration units of interest are "g/l" and "ppb".
 
-We can specify that in our query like:
+We can specify that in our query:
 ```{r, eval=FALSE}
-q1.1 = stx_query(
+q1.1 <- stx_query(
   cas_number = my_cas, 
   endpoint_group = "XX50", 
-  concentration_unit = c("g/l","ppb"),
+  concentration_unit = c("g/l", "ppb"),
   include_reference = TRUE
 )
 
 #Let's check if that worked
-q1.1$endpoint %>% table %>% sort(., decreasing = T)
-q1.1$concentration_unit %>% table %>% sort(., decreasing = T)
+q1.1$endpoint %>% table() %>% sort(decreasing = TRUE)
+q1.1$concentration_unit %>% table() %>% sort(decreasing = TRUE)
 ```
 
 ### Exporting the query results
-We have multiple options on how to export our query results as simple flat data tables. The easiest is to use base R for that. 
+We have multiple options for how to export our query results as simple flat files. The easiest is to use base R for that. 
 ```{r, eval=FALSE}
-# To keep things clean and tight - let's create an output directory
-out_dir = file.path("./standartox_course_output") # specify path to out_dir
+# To keep things clean, let's create an output directory
+out_dir <- file.path("./standartox_course_output") # specify path to out_dir
 dir.create(out_dir, showWarnings = FALSE) # create the output directory 
 
-# Export the query as csv. Use write.csv2() for that
-write.csv2(q1.1, file = file.path(out_dir,"q1.1_res.csv"))
+# Export the query as a CSV file. Use write.csv2() for semicolon-separated files.
+write.csv2(q1.1, file = file.path(out_dir, "q1.1_res.csv"))
 
-?write.csv2() # Have a closer look at write.csv. 
-# Can you spot the difference between write.csv and write.csv2 ?
+# You can look at the documentation for this function
+?write.csv2 
+# Can you spot the difference between write.csv and write.csv2?
 
-# Alternatively we can export the file as a tab separated file (tsv).
-# For this we specify the separator as such: sep = "\t"
-file.path(out_dir,"q1.1_res.tsv") %>%
-  write.table(q1.1, file = ., sep = "\t", 
-              na = "", # NA values are denoted as blank values
-              quote = FALSE) # character strings are not surrounded by ""
+# Alternatively, we can export the file as a tab-separated file (tsv).
+# For this, we use write.table() and specify the separator as sep = "\t"
+output_file_path <- file.path(out_dir, "q1.1_res.tsv")
+write.table(q1.1, file = output_file_path, sep = "\t", 
+            na = "", # NA values are denoted as blank values
+            quote = FALSE) # character strings are not surrounded by ""
 ```
 
 
-Alternatively we can export the data tables directly to an excel using the `writexl` package. 
+Alternatively, we can export the data tables directly to an Excel file using the `writexl` package. First, you'll need to install it via `install.packages("writexl")`. Then you can run:
 ```{r, eval=FALSE}
-library(writexl)
-write_xlsx(q1.1, file.path(out_dir,"q1.1_res.xlsx"))
+# install.packages("writexl") # <- to install the package if needed.
+
+# when using writexl:: we can directly load a specific function from a package without
+# having to load the entire package into our workspace. (More lightweight)
+writexl::write_xlsx(q1.1, path = file.path(out_dir, "q1.1_res.xlsx"))
 ```
 
 
@@ -307,10 +328,9 @@ write_xlsx(q1.1, file.path(out_dir,"q1.1_res.xlsx"))
 
 ----
 
-## Adressing scientifc questions with *standaRtox*
+## Adressing scientific questions with *standaRtox*
 
 
 ----
 
 ## Quick SSDs with *standaRtox*
-
