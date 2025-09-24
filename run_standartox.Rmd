@@ -9,6 +9,13 @@ output:
     toc_float: true
 runtime: shiny
 ---
+
+The source code for this Rmarkdown report can be found [here](https://github.com/hreinwald/GLB2025-standartox-course).
+
+To render this Rmarkdown simply run:
+```{r, eval=FALSE}
+rmarkdown::render("run_standartox.Rmd") # render the Rmd script 
+```
   
 ----
   
@@ -29,7 +36,6 @@ remotes::install_github('andschar/standartox') # github version
 
 The *standaRtox* package depends on the `data.table` package, which is a powerful R-package for efficient data manipulation. It is required to make the *standaRtox* package work properly. If you don't have it installed, the following code will handle it.
 ```{r, eval=FALSE}
-# We can write this in a single line of code as well like this:
 install.packages("data.table")
 ```
 
@@ -41,7 +47,7 @@ install.packages("ggplot2")
 
 ### Loading packages
 Once we have the required R packages installed, we must load them into our current R session. It is good practice to load all required packages at the beginning of your R script. This way, you can easily see which packages the script depends on.
-```{r, eval=TRUE}
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
 # Load the necessary packages for this analysis
 library(standartox)
 library(data.table)
@@ -97,7 +103,8 @@ file.path(tempdir(), "standartox")
 # The following code will store your Db files in that temporary directory
 # Setting 'silent = FALSE' makes the function verbose, printing its progress.
 # The ::: operator is a special tool that lets you bypass the package's public interface and access these internal, non-exported functions directly.
-stxDb <- standartox:::stx_download(silent = FALSE)
+stxDb <- standartox:::stx_download(silent = FALSE) 
+
 # If you get an ERROR 407, try to re-run the command
 ```
 
@@ -156,7 +163,11 @@ catalog$endpoint
 catalog$concentration_unit
 catalog$measurement
 ```
-Using `View()` allows you to use the search bar in your R Studio IDE. (e.g. `View(catalog$endpoint)`)
+
+Using `View()` allows you to use the search bar in your R Studio IDE.
+```{r, eval=FALSE}
+View(catalog$endpoint)
+```
 
 ----
   
@@ -173,7 +184,7 @@ Within your RStudio IDE, you can use the search bar in the top-right corner of t
 ----
 
 ### stx_chem()
-If you are interested in which chemicals are listed, you can use `stx_chem()` to directly access this information. 
+If you want to know which chemicals are listed in *standaRtox*, you can use `stx_chem()` to directly access this information. 
 ```{r, eval=FALSE}
 chem.dt <- stx_chem()
 View(chem.dt)
@@ -218,7 +229,6 @@ qres <- stx_query(verbose = TRUE)
 ```
 
 You can now inspect the results via `View(qres)`. If you wish to append a reference list, you can set `include_reference = TRUE`. 
-
 ```{r, eval=FALSE}
 # Append reference list to the results
 qres <- stx_query(verbose = TRUE, include_reference = TRUE)
@@ -239,7 +249,7 @@ Let's say you are interested in finding ecotoxicological endpoints for the follo
 `stx_query()` supports filtering by CAS number. So, first, we need to find the CAS numbers for these chemicals.
 
 We can get them using `stx_chem()`:
-```{r, eval=FALSE}
+```{r, eval=TRUE, message=FALSE}
 # Let's get our chemical list first 
 chem.dt <- stx_chem()
 
@@ -249,13 +259,13 @@ chem_names <- c("glyphosate", "carbaryl", "imidacloprid", "fipronil")
 # Let's try searching for these names.
 # The %like% operator finds partial matches.
 chem.dt_filtered <- chem.dt %>% filter(common_name %like% paste(chem_names, collapse = "|"))
-nrow(chem.dt_filtered) # returns the number of rows in a data frame
-View(chem.dt_filtered)
+# Inspect the chem.dt_filtered object. How many different chemicals can you find in there?
+# hint: View(chem.dt_filtered)
 
 # As you can see, this returns many partial matches. 
 # To get only exact matches, we should use the %in% operator.
 chem.dt_filtered2 <- chem.dt %>% filter(common_name %in% chem_names)
-View(chem.dt_filtered2)
+# hint: View(chem.dt_filtered2)
 
 # We can access the column with our CAS numbers like this: 
 chem.dt_filtered2$cas
@@ -265,7 +275,7 @@ my_cas <- chem.dt_filtered2$cas
 ```
 
 Now that we have the CAS numbers, we can run the query: 
-```{r, eval=FALSE}
+```{r, eval=TRUE, message=FALSE}
 ## RUN THE QUERY WITH THE CAS NUMBERS ##
 # We set endpoint_group = NULL to get all endpoint groups, not just the default ones.
 q1 <- stx_query(cas_number = my_cas, endpoint_group = NULL)
@@ -277,8 +287,10 @@ Let's inspect the query results. How many different `endpoint` and `concentratio
 # We then sort the results to see the most common ones first.
 q1$endpoint %>% table() %>% sort(decreasing = TRUE) %>% View()
 q1$concentration_unit %>% table() %>% sort(decreasing = TRUE) %>% View()
+```
 
-# We can use our custom plotting function to display the values in a plot
+We can use our custom plotting function to display the values in a plot
+```{r eval=TRUE, message=FALSE, warning=TRUE}
 plot_col_freq(q1, "endpoint")
 plot_col_freq(q1, "measurement")
 plot_col_freq(q1, "concentration_unit")
@@ -319,7 +331,8 @@ q1.1 <- stx_query(
   duration = c(24,72),
   duration_unit = "h",
   concentration_unit = c("g/l"),
-  tax_columns = c("tax_group", "tax_taxon", "tax_genus", "tax_family","tax_order","tax_class"), # added additional tax columns to my output
+  tax_columns = c("tax_group", "tax_taxon", "tax_genus", 
+                  "tax_family","tax_order","tax_class"), # added additional tax columns to my output
   include_reference = TRUE
 )
 
@@ -331,7 +344,7 @@ q1.1 <- stx_query(
 Let's plot the EC50 and LC50 values across the retrieved taxonomic order & class:
 
 **Taxonomic Order**:
-```{r, eval=TRUE}
+```{r eval=TRUE, fig.height=7, fig.width=9.5, message=FALSE}
 # Main plotting code
 q1.1 %>%
   # 1. Filter for only EC50 and LC50 endpoints
@@ -351,7 +364,7 @@ q1.1 %>%
   # 4. Improve readability (highly recommended for concentration data)
   scale_y_log10() + # Use a log scale for the y-axis
   # 5. Add good labels and a nice theme
-  labs( title = "Endpoints by Chemical and Taxonomic Class",
+  labs( title = "Endpoints by Chemical and Taxonomic Order",
         subtitle = "Comparing LC50 and EC50 values", x = "tax_order", y = "g/l (log scale)", 
         color = "Endpoint") +
   theme_minimal() +
@@ -359,7 +372,7 @@ q1.1 %>%
 ```
 
 **Taxonomic Class**:
-```{r, eval=TRUE}
+```{r eval=TRUE, fig.height=7, fig.width=9.5}
 # Main plotting code
 q1.1 %>%
   # 1. Filter for only EC50 and LC50 endpoints
@@ -413,7 +426,7 @@ write.table(q1.1, file = output_file_path, sep = "\t",
 
 Alternatively, we can export the data tables directly to an Excel file using the `writexl` package. First, you'll need to install it via `install.packages("writexl")`. Then you can run:
 ```{r, eval=FALSE}
-# install.packages("writexl") # <- to install the package if needed.
+install.packages("writexl") # <- to install the package if needed.
 
 # when using writexl:: we can directly load a specific function from a package without
 # having to load the entire package into our workspace. (More lightweight)
@@ -449,26 +462,29 @@ chiros = taxa.dt %>% filter(tax_family %in% "Chironomidae")
 ```
 
 Let's assume you wish to retrieve all LC50 and EC50 endpoints for all organisms belonging to the family of *Daphniidae*. We can do this like:
-```{r, eval=F}
+```{r, eval=TRUE}
 q2 = stx_query(
   tax_family = "Daphniidae", 
   endpoint = c("LC50","EC50"),
   concentration_unit = "g/l" # <- to make results more comparable
 )
+```
 
-# Inspect the measurement types represented in the data
+Inspect the measurement types represented in the data
+```{r, eval=TRUE}
 plot_col_freq(q2, "measurement")
+```
 
-# As you can see 'mortality' and 'immobile' are by far the most common ones. 
-# Let's filter further for those using dplyr: 
+As you can see 'mortality' and 'immobile' are by far the most common ones. 
+Let's filter further for those using dplyr: 
+```{r, eval=TRUE, message=FALSE}
 q2.1 = q2 %>% filter(measurement %in% c("mortality","immobile","mobility"))
-
 # Let's check how many tax_genus are in our filtered query output.
 plot_col_freq(q2.1, "tax_genus")
 ```
 
 Let's plot the top 50 (most reported endpoints) for the genus *Daphnia* and *Ceriodaphnia*
-```{r, eval=FALSE}
+```{r eval=TRUE, fig.height=10, fig.width=9.5}
 # quick pre-filtering of the data: 
 dmag = q2.1 %>% filter(tax_genus %in% c("Ceriodaphnia","Daphnia"), endpoint %in% "LC50")
 cas50 = dmag[ , .N, cas ][ order(-N) ][1:100]
@@ -476,12 +492,17 @@ dmag50 = dmag[ cas %in% cas50$cas ]
 
 # add new column which combines common_name & cas
 dmag50[ , new_chem_name := paste0(common_name, ' [CAS: ', cas, ']') ]
-gmn_dt = dmag50[ , .(gmn = exp(mean(log(concentration), na.rm = TRUE))), 
+
+# convert the concentration column into ug/L. We can do this easily here cause we filtered for "g/l"
+# Therefore this is an easy task here. :)
+dmag50 = dmag50 %>% mutate(concentration_ug.L = concentration * 10^6)
+gmn_dt = dmag50[ , .(gmn = exp(mean(log(concentration_ug.L), na.rm = TRUE))), 
                  .(cas, new_chem_name, tax_genus)]
 
 # plot
-ggplot(dmag50, aes(y = new_chem_name)) +
-  geom_point(aes(x = concentration, col = 'All values'), pch = 1, alpha = 0.3) +
+dmag50 %>%
+  ggplot(.,  aes(y = new_chem_name)) +
+  geom_point(aes(x = concentration_ug.L, col = 'All values'), pch = 1, alpha = 0.3) +
   geom_point(data = gmn_dt,
              aes(y = reorder(new_chem_name, -gmn), x = gmn, 
                  col = 'Standartox value\n(Geometric mean)'), size = 3, alpha = 0.8) +
@@ -489,19 +510,20 @@ ggplot(dmag50, aes(y = new_chem_name)) +
                 labels = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) +
   scale_color_viridis_d(name = '') +
   labs(title = 'LC50 values for Ceriodaphnia & Daphnia',
-       subtitle = '50 most tested chemicals', x = 'Concentration [g/L]') +
+       subtitle = '50 most tested chemicals', x = 'Concentration [µg/L]') +
   theme_minimal() +
   theme(axis.title.y = element_blank()) +
   facet_wrap(~ tax_genus)
-
 ```
 
 
 ----
 
 ## Adressing scientific questions with *standaRtox*
+For the next part of the course please refer to [standartox_examples.Rmd file](standartox_examples.Rmd).
 
 
 ----
 
 ## Quick SSDs with *standaRtox*
+Still needs to be prepared ... 
