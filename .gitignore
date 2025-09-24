@@ -8,3 +8,4 @@
 src/standartox.R
 output/*
 standartox_course_output/*
+standartox_db/*

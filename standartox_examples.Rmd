@@ -57,3 +57,9 @@ Mind the units!
 ```
 
 ### What are the chemicals with the most tested taxa?
+
+
+### Calculate the mean, geometric mean and the standard deviation for Imidaloprid and rainbow trout.
+
+
+

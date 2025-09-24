@@ -1,6 +1,6 @@
 ---
 title:  "Learning StandaRtox - A basic introduction for beginners"
-author: "Hannes Reinwald, Andreas Scharmüller"
+author: "Hannes Reinwald, Andreas Scharmüller, Heike Fremdt"
 date:   "`r Sys.Date()`"
 output:
   html_document:
@@ -41,13 +41,13 @@ install.packages("ggplot2")
 
 ### Loading packages
 Once we have the required R packages installed, we must load them into our current R session. It is good practice to load all required packages at the beginning of your R script. This way, you can easily see which packages the script depends on.
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 # Load the necessary packages for this analysis
 library(standartox)
 library(data.table)
 library(dplyr)   # A helpful package for data filtering and aggregation
 library(ggplot2) # A powerful data plotting package
-
+library(forcats) # For reordering factor levels
 # with this line we will load custom plotting functions built for this course
 source("src/custom_plot_FUN.R")
 ```
@@ -96,7 +96,9 @@ file.path(tempdir(), "standartox")
 
 # The following code will store your Db files in that temporary directory
 # Setting 'silent = FALSE' makes the function verbose, printing its progress.
-stxDb <- stx_download(silent = FALSE)
+# The ::: operator is a special tool that lets you bypass the package's public interface and access these internal, non-exported functions directly.
+stxDb <- standartox:::stx_download(silent = FALSE)
+# If you get an ERROR 407, try to re-run the command
 ```
 
 If the download was successful, we should now find the files in our local file system. Let's check that with the `list.files` function. 
@@ -112,8 +114,8 @@ View(stxDb)
 If you wish to keep the standartox database files permanently on your device, you can specify any directory on your system. This might be useful if you need to work offline (e.g., traveling with Deutsche Bahn xD).
 ```{r, eval=FALSE}
 # To keep the downloaded database permanently, specify a storage directory.
-local_stx_dir <- "~/standartox_db"
-stxDb <- stx_download(silent = FALSE, stx_dir = local_stx_dir)
+local_stx_dir <- "./standartox_db"
+stxDb <- standartox:::stx_download(silent = FALSE, stx_dir = local_stx_dir)
 ```
 
 We can quickly check for our files under our specified file path in the variable `local_stx_dir` using `list.files` again. This time we use `full.names = TRUE` which returns the full file path.
@@ -278,28 +280,113 @@ q1$concentration_unit %>% table() %>% sort(decreasing = TRUE) %>% View()
 
 # We can use our custom plotting function to display the values in a plot
 plot_col_freq(q1, "endpoint")
+plot_col_freq(q1, "measurement")
 plot_col_freq(q1, "concentration_unit")
+plot_col_freq(q1, "tax_family")
 ```
 
-After looking at the results, you might decide to filter more specifically. Let's say your endpoint of interest is `XX50` (e.g., LC50, EC50) and your concentration units of interest are "g/l" and "ppb".
+If you wish to calculate the average EC50, LC50, NOEC and LOEC values you can do that simply using dplyr's `group_by` and `summarize`. Let's use `tax_family` as one of our grouping parameter: 
+```{r, eval=FALSE}
+sum_stats = q1 %>% filter(!is.na(cas), endpoint %in% c("EC50","LC50","NOEC","LOEC")) %>% 
+  group_by(cas, common_name, endpoint, measurement, concentration_unit, tax_family) %>%
+  summarise(
+    # 1. Count of observations in the group
+    count = n(),
+    # 2. Arithmetic mean of concentration
+    mean_conc = mean(concentration, na.rm = TRUE),
+    # 3. Standard deviation of concentration
+    sd_conc = sd(concentration, na.rm = TRUE),
+    # 4. Geometric mean of concentration
+    geom_mean_conc = exp(mean(log(concentration), na.rm = TRUE)),
+    # Good practice: Specify what to do with groups after summarising
+    .groups = 'drop') %>% arrange( desc(count) ) %>%
+  filter(!is.na(mean_conc))
+
+# Have a look at `sum_stats`. How would you calculate a summary statistic based on 
+# averaged endpoints for each taxonomic genus? 
+# ... 
+# ...
+```
+
+
+After looking at the results, you might decide to filter more specifically. Let's say your endpoint of interest is `XX50` (e.g., LC50, EC50) for acute short term exposure ranging from 24 to 72 hours and your concentration units of interest are "g/l".
 
 We can specify that in our query:
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 q1.1 <- stx_query(
   cas_number = my_cas, 
-  endpoint_group = "XX50", 
-  concentration_unit = c("g/l", "ppb"),
+  endpoint_group = "XX50",
+  duration = c(24,72),
+  duration_unit = "h",
+  concentration_unit = c("g/l"),
+  tax_columns = c("tax_group", "tax_taxon", "tax_genus", "tax_family","tax_order","tax_class"), # added additional tax columns to my output
   include_reference = TRUE
 )
 
-#Let's check if that worked
-q1.1$endpoint %>% table() %>% sort(decreasing = TRUE)
-q1.1$concentration_unit %>% table() %>% sort(decreasing = TRUE)
-
-# We can use our custom plotting function again to display the values in a plot
-plot_col_freq(q1.1, "endpoint")
-plot_col_freq(q1.1, "concentration_unit")
+# You can check if that worked via:
+# q1.1$endpoint %>% table() %>% sort(decreasing = TRUE)
+# q1.1$concentration_unit %>% table() %>% sort(decreasing = TRUE)
 ```
+
+Let's plot the EC50 and LC50 values across the retrieved taxonomic order & class:
+
+**Taxonomic Order**:
+```{r, eval=TRUE}
+# Main plotting code
+q1.1 %>%
+  # 1. Filter for only EC50 and LC50 endpoints
+  filter(endpoint %in% c("EC50", "LC50"), !is.na(tax_order)) %>%
+  # We use .desc = TRUE to sort from high to low.
+  mutate(tax_order = fct_reorder(tax_order, concentration, .fun = mean, .desc = TRUE)) %>%
+  # 2. Create the plot
+  ggplot(aes(x = tax_order, y = concentration, color = endpoint)) +
+  # Add jittered points to show all individual data points
+  geom_point( position = position_jitterdodge(
+      jitter.width = 0.2, dodge.width = 0.8, seed = 1 ), alpha = 0.4, shape = 16 ) +
+  # Add boxplots to show the distribution (optional but recommended)
+  # The outlier.shape = NA hides the default outliers since we will plot our own points.
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  # 3. Create separate panels for each common chemical name
+  facet_wrap(~ common_name, scales = "free_x") +
+  # 4. Improve readability (highly recommended for concentration data)
+  scale_y_log10() + # Use a log scale for the y-axis
+  # 5. Add good labels and a nice theme
+  labs( title = "Endpoints by Chemical and Taxonomic Class",
+        subtitle = "Comparing LC50 and EC50 values", x = "tax_order", y = "g/l (log scale)", 
+        color = "Endpoint") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels if they overlap
+```
+
+**Taxonomic Class**:
+```{r, eval=TRUE}
+# Main plotting code
+q1.1 %>%
+  # 1. Filter for only EC50 and LC50 endpoints
+  filter(endpoint %in% c("EC50", "LC50"), !is.na(tax_class)) %>%
+  # We use .desc = TRUE to sort from high to low.
+  mutate(tax_class = fct_reorder(tax_class, concentration, .fun = mean, .desc = TRUE)) %>%
+  # 2. Create the plot
+  ggplot(aes(x = tax_class, y = concentration, color = endpoint)) +
+  # Add jittered points to show all individual data points
+  geom_point( position = position_jitterdodge(
+      jitter.width = 0.2, dodge.width = 0.8, seed = 1 ), alpha = 0.4, shape = 16 ) +
+  # Add boxplots to show the distribution (optional but recommended)
+  # The outlier.shape = NA hides the default outliers since we will plot our own points.
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  # 3. Create separate panels for each common chemical name
+  facet_wrap(~ common_name, scales = "free_x") +
+  # 4. Improve readability (highly recommended for concentration data)
+  scale_y_log10() + # Use a log scale for the y-axis
+  # 5. Add good labels and a nice theme
+  labs( title = "Endpoints by Chemical and Taxonomic Class",
+        subtitle = "Comparing LC50 and EC50 values", x = "tax_order", y = "g/l (log scale)", 
+        color = "Endpoint") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels if they overlap
+```
+
+
 
 ### Exporting the query results
 We have multiple options for how to export our query results as simple flat files. The easiest is to use base R for that. 
@@ -362,7 +449,7 @@ chiros = taxa.dt %>% filter(tax_family %in% "Chironomidae")
 ```
 
 Let's assume you wish to retrieve all LC50 and EC50 endpoints for all organisms belonging to the family of *Daphniidae*. We can do this like:
-```{r, eval=TRUE}
+```{r, eval=F}
 q2 = stx_query(
   tax_family = "Daphniidae", 
   endpoint = c("LC50","EC50"),
@@ -370,19 +457,45 @@ q2 = stx_query(
 )
 
 # Inspect the measurement types represented in the data
-m_types = q2$measurement %>% table %>% sort(decreasing = T)
-head(m_types, 15) # show the top 15 results
+plot_col_freq(q2, "measurement")
 
 # As you can see 'mortality' and 'immobile' are by far the most common ones. 
 # Let's filter further for those using dplyr: 
 q2.1 = q2 %>% filter(measurement %in% c("mortality","immobile","mobility"))
+
+# Let's check how many tax_genus are in our filtered query output.
+plot_col_freq(q2.1, "tax_genus")
 ```
 
-We can plot the results of our query using `ggplot2`. 
-```{r, eval=TRUE}
+Let's plot the top 50 (most reported endpoints) for the genus *Daphnia* and *Ceriodaphnia*
+```{r, eval=FALSE}
+# quick pre-filtering of the data: 
+dmag = q2.1 %>% filter(tax_genus %in% c("Ceriodaphnia","Daphnia"), endpoint %in% "LC50")
+cas50 = dmag[ , .N, cas ][ order(-N) ][1:100]
+dmag50 = dmag[ cas %in% cas50$cas ]
 
+# add new column which combines common_name & cas
+dmag50[ , new_chem_name := paste0(common_name, ' [CAS: ', cas, ']') ]
+gmn_dt = dmag50[ , .(gmn = exp(mean(log(concentration), na.rm = TRUE))), 
+                 .(cas, new_chem_name, tax_genus)]
+
+# plot
+ggplot(dmag50, aes(y = new_chem_name)) +
+  geom_point(aes(x = concentration, col = 'All values'), pch = 1, alpha = 0.3) +
+  geom_point(data = gmn_dt,
+             aes(y = reorder(new_chem_name, -gmn), x = gmn, 
+                 col = 'Standartox value\n(Geometric mean)'), size = 3, alpha = 0.8) +
+  scale_x_log10(breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),
+                labels = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_viridis_d(name = '') +
+  labs(title = 'LC50 values for Ceriodaphnia & Daphnia',
+       subtitle = '50 most tested chemicals', x = 'Concentration [g/L]') +
+  theme_minimal() +
+  theme(axis.title.y = element_blank()) +
+  facet_wrap(~ tax_genus)
 
 ```
+
 
 ----
 
